@@ -1,0 +1,254 @@
+// Prisma schema for the Vinted reselling webapp.
+// Phase 1: only User/Item have associated business logic (auth, schema only).
+// The remaining models exist fully in the database but are wired up with
+// endpoints/services in later phases.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+enum ItemStatus {
+  IN_STOCK
+  RESERVED
+  SOLD
+}
+
+enum ItemCondition {
+  NEW_WITH_TAGS
+  NEW_WITHOUT_TAGS
+  VERY_GOOD
+  GOOD
+  SATISFACTORY
+}
+
+enum RecommendationStatus {
+  NEW
+  VIEWED
+  DISMISSED
+  PURCHASED
+}
+
+enum MarketplaceSource {
+  VINTED
+  EBAY_KLEINANZEIGEN
+  OTHER
+}
+
+// ---------- Models ----------
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  items           Item[]
+  purchases       Purchase[]
+  sales           Sale[]
+  recommendations Recommendation[]
+  watchlistItems  Watchlist[]
+  searchProfiles  SearchProfile[]
+  products        Product[]
+
+  @@map("users")
+}
+
+model Item {
+  id    String @id @default(uuid())
+  title String
+
+  brand       String?
+  category    String?
+  size        String?
+  condition   ItemCondition?
+  color       String?
+  description String?        @db.Text
+  notes       String?        @db.Text
+
+  purchasePrice     Decimal? @db.Decimal(10, 2)
+  purchaseShipping  Decimal? @db.Decimal(10, 2)
+  purchaseFees      Decimal? @db.Decimal(10, 2)
+  expectedSalePrice Decimal? @db.Decimal(10, 2)
+  soldPrice         Decimal? @db.Decimal(10, 2)
+  saleShipping      Decimal? @db.Decimal(10, 2)
+  saleFees          Decimal? @db.Decimal(10, 2)
+
+  purchaseDate DateTime?
+  soldDate     DateTime?
+
+  status           ItemStatus @default(IN_STOCK)
+  images           String[]   @default([])
+  sourceListingUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  purchases       Purchase[]
+  sales           Sale[]
+  recommendations Recommendation[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("items")
+}
+
+model Purchase {
+  id           String   @id @default(uuid())
+  price        Decimal  @db.Decimal(10, 2)
+  shippingCost Decimal? @db.Decimal(10, 2)
+  fees         Decimal? @db.Decimal(10, 2)
+  source       String?
+  purchaseDate DateTime @default(now())
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  itemId String
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@index([userId])
+  @@map("purchases")
+}
+
+model Sale {
+  id           String   @id @default(uuid())
+  salePrice    Decimal  @db.Decimal(10, 2)
+  shippingCost Decimal? @db.Decimal(10, 2)
+  fees         Decimal? @db.Decimal(10, 2)
+  platform     String?
+  buyer        String?
+  saleDate     DateTime @default(now())
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  itemId String
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@index([userId])
+  @@map("sales")
+}
+
+model Recommendation {
+  id        String               @id @default(uuid())
+  score     Float?
+  reason    String?              @db.Text
+  status    RecommendationStatus @default(NEW)
+  createdAt DateTime             @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  itemId String?
+  item   Item?   @relation(fields: [itemId], references: [id], onDelete: SetNull)
+
+  marketplaceListingId String?
+  marketplaceListing   MarketplaceListing? @relation(fields: [marketplaceListingId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("recommendations")
+}
+
+model Watchlist {
+  id        String   @id @default(uuid())
+  note      String?  @db.Text
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  marketplaceListingId String
+  marketplaceListing   MarketplaceListing @relation(fields: [marketplaceListingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, marketplaceListingId])
+  @@index([userId])
+  @@map("watchlist")
+}
+
+model Product {
+  id        String   @id @default(uuid())
+  title     String
+  brand     String?
+  category  String?
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  searchProfiles SearchProfile[]
+  listings       MarketplaceListing[]
+
+  @@index([userId])
+  @@map("products")
+}
+
+model SearchProfile {
+  id                     String         @id @default(uuid())
+  name                   String
+  sizes                  String[]       @default([])
+  colors                 String[]       @default([])
+  maxPrice               Decimal?       @db.Decimal(10, 2)
+  condition              ItemCondition?
+  isActive               Boolean        @default(true)
+  refreshIntervalMinutes Int            @default(60)
+  lastRunAt              DateTime?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([productId])
+  @@map("search_profiles")
+}
+
+model MarketplaceListing {
+  id          String            @id @default(uuid())
+  title       String
+  price       Decimal           @db.Decimal(10, 2)
+  brand       String?
+  category    String?
+  size        String?
+  color       String?
+  condition   ItemCondition?
+  images      String[]          @default([])
+  listingUrl  String            @unique
+  seller      String?
+  publishedAt DateTime?
+  isFavorite  Boolean           @default(false)
+  source      MarketplaceSource @default(VINTED)
+  detectedAt  DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  recommendations Recommendation[]
+  watchlistedBy   Watchlist[]
+
+  @@index([source])
+  @@index([productId])
+  @@map("marketplace_listings")
+}
