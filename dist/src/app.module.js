@@ -20,6 +20,7 @@ const users_module_1 = require("./users/users.module");
 const items_module_1 = require("./items/items.module");
 const marketplace_module_1 = require("./marketplace/marketplace.module");
 const products_module_1 = require("./products/products.module");
+const dashboard_module_1 = require("./dashboard/dashboard.module");
 const jwt_auth_guard_1 = require("./common/guards/jwt-auth.guard");
 const all_exceptions_filter_1 = require("./common/filters/all-exceptions.filter");
 const logging_interceptor_1 = require("./common/interceptors/logging.interceptor");
@@ -38,6 +39,7 @@ exports.AppModule = AppModule = __decorate([
             items_module_1.ItemsModule,
             products_module_1.ProductsModule,
             marketplace_module_1.MarketplaceModule,
+            dashboard_module_1.DashboardModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

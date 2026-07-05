@@ -1,9 +1,14 @@
-import type { Item } from '@prisma/client';
-export declare class ItemResponseDto {
+import type { ItemWithProduct } from '../repositories/item.repository.interface';
+declare class ItemProductDto {
     id: string;
     title: string;
     brand: string | null;
     category: string | null;
+}
+export declare class ItemResponseDto {
+    id: string;
+    productId: string;
+    product: ItemProductDto;
     size: string | null;
     condition: string | null;
     color: string | null;
@@ -26,5 +31,6 @@ export declare class ItemResponseDto {
     profit: number | null;
     margin: number | null;
     daysInStock: number;
-    constructor(item: Item);
+    constructor(item: ItemWithProduct);
 }
+export {};

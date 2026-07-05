@@ -19,13 +19,12 @@ const SORTABLE_FIELDS = [
     'purchaseDate',
     'soldDate',
     'purchasePrice',
-    'title',
+    'productTitle',
 ];
 class QueryItemsDto {
     search;
     status;
-    brand;
-    category;
+    productId;
     size;
     condition;
     sortBy = 'createdAt';
@@ -49,15 +48,9 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsUUID)(),
     __metadata("design:type", String)
-], QueryItemsDto.prototype, "brand", void 0);
-__decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], QueryItemsDto.prototype, "category", void 0);
+], QueryItemsDto.prototype, "productId", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     (0, class_validator_1.IsOptional)(),

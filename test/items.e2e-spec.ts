@@ -10,6 +10,10 @@ interface AuthResponseBody {
   accessToken: string;
 }
 
+interface ProductResponseBody {
+  id: string;
+}
+
 interface ItemResponseBody {
   id: string;
   status: string;
@@ -21,6 +25,7 @@ describe('Items (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   let accessToken: string;
+  let productId: string;
 
   const credentials = {
     email: 'items-e2e-user@example.com',
@@ -39,7 +44,13 @@ describe('Items (e2e)', () => {
     prisma = app.get(PrismaService);
     await prisma.user.deleteMany({
       where: {
-        email: { in: [credentials.email, 'items-e2e-other@example.com'] },
+        email: {
+          in: [
+            credentials.email,
+            'items-e2e-other@example.com',
+            'items-e2e-other-product@example.com',
+          ],
+        },
       },
     });
 
@@ -47,6 +58,12 @@ describe('Items (e2e)', () => {
       .post('/auth/register')
       .send(credentials);
     accessToken = (registerResponse.body as AuthResponseBody).accessToken;
+
+    const productResponse = await request(app.getHttpServer())
+      .post('/products')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ title: 'Ralph Lauren Oxford Hemd', brand: 'Ralph Lauren' });
+    productId = (productResponse.body as ProductResponseBody).id;
   });
 
   afterAll(async () => {
@@ -74,8 +91,7 @@ describe('Items (e2e)', () => {
     const response = await authed()
       .post('/items')
       .send({
-        title: 'Ralph Lauren Oxford Hemd',
-        brand: 'Ralph Lauren',
+        productId,
         purchasePrice: 8.5,
         purchaseDate: '2026-06-01',
       })
@@ -93,7 +109,43 @@ describe('Items (e2e)', () => {
   });
 
   it('rejects an item without a purchase price', async () => {
-    await authed().post('/items').send({ title: 'Missing price' }).expect(400);
+    await authed().post('/items').send({ productId }).expect(400);
+  });
+
+  it('rejects an item without a productId', async () => {
+    await authed()
+      .post('/items')
+      .send({ purchasePrice: 5, purchaseDate: '2026-06-01' })
+      .expect(400);
+  });
+
+  it("rejects an item pointing at another user's product", async () => {
+    const otherUser = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: 'items-e2e-other-product@example.com',
+        password: 'CorrectPass1',
+      });
+    const otherToken = (otherUser.body as AuthResponseBody).accessToken;
+
+    const otherProduct = await request(app.getHttpServer())
+      .post('/products')
+      .set('Authorization', `Bearer ${otherToken}`)
+      .send({ title: "Other user's product" });
+    const otherProductId = (otherProduct.body as ProductResponseBody).id;
+
+    await authed()
+      .post('/items')
+      .send({
+        productId: otherProductId,
+        purchasePrice: 5,
+        purchaseDate: '2026-06-01',
+      })
+      .expect(404);
+
+    await prisma.user.deleteMany({
+      where: { email: 'items-e2e-other-product@example.com' },
+    });
   });
 
   it("lists only the current user's items", async () => {
@@ -104,7 +156,7 @@ describe('Items (e2e)', () => {
 
   it('selling an item creates a linked sale record and computes profit', async () => {
     const createResponse = await authed().post('/items').send({
-      title: 'Sell me',
+      productId,
       purchasePrice: 10,
       purchaseDate: '2026-06-01',
     });
@@ -130,7 +182,7 @@ describe('Items (e2e)', () => {
     const otherToken = (otherUser.body as AuthResponseBody).accessToken;
 
     const createResponse = await authed().post('/items').send({
-      title: 'Private item',
+      productId,
       purchasePrice: 5,
       purchaseDate: '2026-06-01',
     });
@@ -149,10 +201,10 @@ describe('Items (e2e)', () => {
   it('bulk-updates the status of multiple items', async () => {
     const first = await authed()
       .post('/items')
-      .send({ title: 'Bulk 1', purchasePrice: 5, purchaseDate: '2026-06-01' });
+      .send({ productId, purchasePrice: 5, purchaseDate: '2026-06-01' });
     const second = await authed()
       .post('/items')
-      .send({ title: 'Bulk 2', purchasePrice: 5, purchaseDate: '2026-06-01' });
+      .send({ productId, purchasePrice: 5, purchaseDate: '2026-06-01' });
 
     const ids = [
       (first.body as ItemResponseBody).id,
@@ -169,7 +221,7 @@ describe('Items (e2e)', () => {
 
   it('deletes an item', async () => {
     const createResponse = await authed().post('/items').send({
-      title: 'Delete me',
+      productId,
       purchasePrice: 5,
       purchaseDate: '2026-06-01',
     });

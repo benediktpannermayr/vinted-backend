@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type { Item } from '@prisma/client';
 import { Exclude, Expose } from 'class-transformer';
+import type { ItemWithProduct } from '../repositories/item.repository.interface';
 
 function toNumber(value: unknown): number | null {
   if (value === null || value === undefined) return null;
@@ -11,12 +11,18 @@ function toDateOnly(value: Date | null): string | null {
   return value ? value.toISOString() : null;
 }
 
-@Exclude()
-export class ItemResponseDto {
+class ItemProductDto {
   @Expose() @ApiProperty() id: string;
   @Expose() @ApiProperty() title: string;
   @Expose() @ApiPropertyOptional() brand: string | null;
   @Expose() @ApiPropertyOptional() category: string | null;
+}
+
+@Exclude()
+export class ItemResponseDto {
+  @Expose() @ApiProperty() id: string;
+  @Expose() @ApiProperty() productId: string;
+  @Expose() @ApiProperty({ type: ItemProductDto }) product: ItemProductDto;
   @Expose() @ApiPropertyOptional() size: string | null;
   @Expose() @ApiPropertyOptional() condition: string | null;
   @Expose() @ApiPropertyOptional() color: string | null;
@@ -59,11 +65,15 @@ export class ItemResponseDto {
   })
   daysInStock: number;
 
-  constructor(item: Item) {
+  constructor(item: ItemWithProduct) {
     this.id = item.id;
-    this.title = item.title;
-    this.brand = item.brand;
-    this.category = item.category;
+    this.productId = item.productId;
+    this.product = {
+      id: item.product.id,
+      title: item.product.title,
+      brand: item.product.brand,
+      category: item.product.category,
+    };
     this.size = item.size;
     this.condition = item.condition;
     this.color = item.color;

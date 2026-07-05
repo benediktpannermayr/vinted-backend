@@ -17,25 +17,27 @@ exports.ItemsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const storage_provider_interface_1 = require("../common/interfaces/storage-provider.interface");
+const products_service_1 = require("../products/products.service");
 const item_repository_interface_1 = require("./repositories/item.repository.interface");
 const item_response_dto_1 = require("./dto/item-response.dto");
 let ItemsService = ItemsService_1 = class ItemsService {
     itemRepository;
     storageProvider;
     prisma;
+    productsService;
     logger = new common_1.Logger(ItemsService_1.name);
-    constructor(itemRepository, storageProvider, prisma) {
+    constructor(itemRepository, storageProvider, prisma, productsService) {
         this.itemRepository = itemRepository;
         this.storageProvider = storageProvider;
         this.prisma = prisma;
+        this.productsService = productsService;
     }
     async findAll(userId, query) {
         const filters = {
             userId,
             search: query.search,
             status: query.status,
-            brand: query.brand,
-            category: query.category,
+            productId: query.productId,
             size: query.size,
             condition: query.condition,
         };
@@ -64,13 +66,12 @@ let ItemsService = ItemsService_1 = class ItemsService {
         return new item_response_dto_1.ItemResponseDto(item);
     }
     async create(userId, dto) {
+        await this.productsService.assertOwnership(dto.productId, userId);
         const created = await this.prisma.$transaction(async (tx) => {
             const item = await tx.item.create({
                 data: {
                     userId,
-                    title: dto.title,
-                    brand: dto.brand,
-                    category: dto.category,
+                    productId: dto.productId,
                     size: dto.size,
                     condition: dto.condition,
                     color: dto.color,
@@ -83,6 +84,7 @@ let ItemsService = ItemsService_1 = class ItemsService {
                     purchaseDate: new Date(dto.purchaseDate),
                     sourceListingUrl: dto.sourceListingUrl,
                 },
+                include: { product: true },
             });
             await tx.purchase.create({
                 data: {
@@ -107,10 +109,11 @@ let ItemsService = ItemsService_1 = class ItemsService {
     }
     async update(id, userId, dto) {
         await this.assertOwnership(id, userId);
+        if (dto.productId) {
+            await this.productsService.assertOwnership(dto.productId, userId);
+        }
         const item = await this.itemRepository.update(id, {
-            title: dto.title,
-            brand: dto.brand,
-            category: dto.category,
+            productId: dto.productId,
             size: dto.size,
             condition: dto.condition,
             color: dto.color,
@@ -137,6 +140,7 @@ let ItemsService = ItemsService_1 = class ItemsService {
                     saleFees: dto.saleFees,
                     soldDate: new Date(dto.soldDate),
                 },
+                include: { product: true },
             });
             await tx.sale.create({
                 data: {
@@ -227,6 +231,7 @@ exports.ItemsService = ItemsService = ItemsService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, common_1.Inject)(item_repository_interface_1.ITEM_REPOSITORY)),
     __param(1, (0, common_1.Inject)(storage_provider_interface_1.STORAGE_PROVIDER)),
-    __metadata("design:paramtypes", [Object, Object, prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [Object, Object, prisma_service_1.PrismaService,
+        products_service_1.ProductsService])
 ], ItemsService);
 //# sourceMappingURL=items.service.js.map

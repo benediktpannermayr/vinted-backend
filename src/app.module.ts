@@ -11,6 +11,7 @@ import { UsersModule } from './users/users.module';
 import { ItemsModule } from './items/items.module';
 import { MarketplaceModule } from './marketplace/marketplace.module';
 import { ProductsModule } from './products/products.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -26,6 +27,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     ItemsModule,
     ProductsModule,
     MarketplaceModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [

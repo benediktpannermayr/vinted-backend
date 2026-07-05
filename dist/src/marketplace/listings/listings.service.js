@@ -83,8 +83,7 @@ let ListingsService = class ListingsService {
         return this.prisma.item.findMany({
             where: { userId, status: 'SOLD', soldDate: { not: null } },
             select: {
-                brand: true,
-                category: true,
+                product: { select: { brand: true, category: true } },
                 soldPrice: true,
                 purchasePrice: true,
                 purchaseDate: true,
@@ -103,8 +102,8 @@ let ListingsService = class ListingsService {
     }
     findSimilarSales(soldItems, brand, category) {
         return soldItems
-            .filter((item) => (brand && item.brand === brand) ||
-            (category && item.category === category))
+            .filter((item) => (brand && item.product.brand === brand) ||
+            (category && item.product.category === category))
             .filter((item) => item.soldPrice !== null &&
             item.purchasePrice !== null &&
             item.soldDate)

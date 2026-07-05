@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const storage_provider_interface_1 = require("../common/interfaces/storage-provider.interface");
 const local_storage_provider_1 = require("../common/storage/local-storage.provider");
 const marketplace_module_1 = require("../marketplace/marketplace.module");
+const products_module_1 = require("../products/products.module");
 const import_listing_preview_service_1 = require("./import-listing-preview.service");
 const items_controller_1 = require("./items.controller");
 const items_service_1 = require("./items.service");
@@ -21,7 +22,7 @@ let ItemsModule = class ItemsModule {
 exports.ItemsModule = ItemsModule;
 exports.ItemsModule = ItemsModule = __decorate([
     (0, common_1.Module)({
-        imports: [marketplace_module_1.MarketplaceModule],
+        imports: [marketplace_module_1.MarketplaceModule, products_module_1.ProductsModule],
         controllers: [items_controller_1.ItemsController],
         providers: [
             items_service_1.ItemsService,
@@ -29,6 +30,7 @@ exports.ItemsModule = ItemsModule = __decorate([
             { provide: item_repository_interface_1.ITEM_REPOSITORY, useClass: item_repository_prisma_1.PrismaItemRepository },
             { provide: storage_provider_interface_1.STORAGE_PROVIDER, useClass: local_storage_provider_1.LocalStorageProvider },
         ],
+        exports: [item_repository_interface_1.ITEM_REPOSITORY],
     })
 ], ItemsModule);
 //# sourceMappingURL=items.module.js.map

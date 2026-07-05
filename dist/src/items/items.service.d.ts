@@ -1,5 +1,6 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { type IStorageProvider } from '../common/interfaces/storage-provider.interface';
+import { ProductsService } from '../products/products.service';
 import type { IItemRepository } from './repositories/item.repository.interface';
 import type { BulkUpdateItemsDto } from './dto/bulk-update-items.dto';
 import type { CreateItemDto } from './dto/create-item.dto';
@@ -17,8 +18,9 @@ export declare class ItemsService {
     private readonly itemRepository;
     private readonly storageProvider;
     private readonly prisma;
+    private readonly productsService;
     private readonly logger;
-    constructor(itemRepository: IItemRepository, storageProvider: IStorageProvider, prisma: PrismaService);
+    constructor(itemRepository: IItemRepository, storageProvider: IStorageProvider, prisma: PrismaService, productsService: ProductsService);
     findAll(userId: string, query: QueryItemsDto): Promise<PaginatedItems>;
     findOne(id: string, userId: string): Promise<ItemResponseDto>;
     create(userId: string, dto: CreateItemDto): Promise<ItemResponseDto>;

@@ -1,8 +1,6 @@
 import { ItemCondition } from '@prisma/client';
 export declare class CreateItemDto {
-    title: string;
-    brand?: string;
-    category?: string;
+    productId: string;
     size?: string;
     condition?: ItemCondition;
     color?: string;

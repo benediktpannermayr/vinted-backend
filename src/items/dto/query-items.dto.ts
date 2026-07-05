@@ -7,6 +7,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   Min,
 } from 'class-validator';
@@ -16,7 +17,7 @@ const SORTABLE_FIELDS = [
   'purchaseDate',
   'soldDate',
   'purchasePrice',
-  'title',
+  'productTitle',
 ] as const;
 export type ItemSortField = (typeof SORTABLE_FIELDS)[number];
 
@@ -33,13 +34,8 @@ export class QueryItemsDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsString()
-  brand?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  category?: string;
+  @IsUUID()
+  productId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -10,6 +10,7 @@ import {
   STORAGE_PROVIDER,
   type IStorageProvider,
 } from '../common/interfaces/storage-provider.interface';
+import { ProductsService } from '../products/products.service';
 import { ITEM_REPOSITORY } from './repositories/item.repository.interface';
 import type { IItemRepository } from './repositories/item.repository.interface';
 import type { BulkUpdateItemsDto } from './dto/bulk-update-items.dto';
@@ -35,6 +36,7 @@ export class ItemsService {
     @Inject(STORAGE_PROVIDER)
     private readonly storageProvider: IStorageProvider,
     private readonly prisma: PrismaService,
+    private readonly productsService: ProductsService,
   ) {}
 
   async findAll(userId: string, query: QueryItemsDto): Promise<PaginatedItems> {
@@ -42,8 +44,7 @@ export class ItemsService {
       userId,
       search: query.search,
       status: query.status,
-      brand: query.brand,
-      category: query.category,
+      productId: query.productId,
       size: query.size,
       condition: query.condition,
     };
@@ -76,13 +77,13 @@ export class ItemsService {
   }
 
   async create(userId: string, dto: CreateItemDto): Promise<ItemResponseDto> {
+    await this.productsService.assertOwnership(dto.productId, userId);
+
     const created = await this.prisma.$transaction(async (tx) => {
       const item = await tx.item.create({
         data: {
           userId,
-          title: dto.title,
-          brand: dto.brand,
-          category: dto.category,
+          productId: dto.productId,
           size: dto.size,
           condition: dto.condition,
           color: dto.color,
@@ -95,6 +96,7 @@ export class ItemsService {
           purchaseDate: new Date(dto.purchaseDate),
           sourceListingUrl: dto.sourceListingUrl,
         },
+        include: { product: true },
       });
 
       await tx.purchase.create({
@@ -131,11 +133,12 @@ export class ItemsService {
     dto: UpdateItemDto,
   ): Promise<ItemResponseDto> {
     await this.assertOwnership(id, userId);
+    if (dto.productId) {
+      await this.productsService.assertOwnership(dto.productId, userId);
+    }
 
     const item = await this.itemRepository.update(id, {
-      title: dto.title,
-      brand: dto.brand,
-      category: dto.category,
+      productId: dto.productId,
       size: dto.size,
       condition: dto.condition,
       color: dto.color,
@@ -169,6 +172,7 @@ export class ItemsService {
           saleFees: dto.saleFees,
           soldDate: new Date(dto.soldDate),
         },
+        include: { product: true },
       });
 
       await tx.sale.create({

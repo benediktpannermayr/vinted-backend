@@ -107,8 +107,7 @@ export class ListingsService {
     return this.prisma.item.findMany({
       where: { userId, status: 'SOLD', soldDate: { not: null } },
       select: {
-        brand: true,
-        category: true,
+        product: { select: { brand: true, category: true } },
         soldPrice: true,
         purchasePrice: true,
         purchaseDate: true,
@@ -135,8 +134,8 @@ export class ListingsService {
     return soldItems
       .filter(
         (item) =>
-          (brand && item.brand === brand) ||
-          (category && item.category === category),
+          (brand && item.product.brand === brand) ||
+          (category && item.product.category === category),
       )
       .filter(
         (item) =>

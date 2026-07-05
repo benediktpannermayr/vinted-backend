@@ -20,11 +20,36 @@ function toNumber(value) {
 function toDateOnly(value) {
     return value ? value.toISOString() : null;
 }
-let ItemResponseDto = class ItemResponseDto {
+class ItemProductDto {
     id;
     title;
     brand;
     category;
+}
+__decorate([
+    (0, class_transformer_1.Expose)(),
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], ItemProductDto.prototype, "id", void 0);
+__decorate([
+    (0, class_transformer_1.Expose)(),
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], ItemProductDto.prototype, "title", void 0);
+__decorate([
+    (0, class_transformer_1.Expose)(),
+    (0, swagger_1.ApiPropertyOptional)(),
+    __metadata("design:type", Object)
+], ItemProductDto.prototype, "brand", void 0);
+__decorate([
+    (0, class_transformer_1.Expose)(),
+    (0, swagger_1.ApiPropertyOptional)(),
+    __metadata("design:type", Object)
+], ItemProductDto.prototype, "category", void 0);
+let ItemResponseDto = class ItemResponseDto {
+    id;
+    productId;
+    product;
     size;
     condition;
     color;
@@ -49,9 +74,13 @@ let ItemResponseDto = class ItemResponseDto {
     daysInStock;
     constructor(item) {
         this.id = item.id;
-        this.title = item.title;
-        this.brand = item.brand;
-        this.category = item.category;
+        this.productId = item.productId;
+        this.product = {
+            id: item.product.id,
+            title: item.product.title,
+            brand: item.product.brand,
+            category: item.product.category,
+        };
         this.size = item.size;
         this.condition = item.condition;
         this.color = item.color;
@@ -99,17 +128,12 @@ __decorate([
     (0, class_transformer_1.Expose)(),
     (0, swagger_1.ApiProperty)(),
     __metadata("design:type", String)
-], ItemResponseDto.prototype, "title", void 0);
+], ItemResponseDto.prototype, "productId", void 0);
 __decorate([
     (0, class_transformer_1.Expose)(),
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", Object)
-], ItemResponseDto.prototype, "brand", void 0);
-__decorate([
-    (0, class_transformer_1.Expose)(),
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", Object)
-], ItemResponseDto.prototype, "category", void 0);
+    (0, swagger_1.ApiProperty)({ type: ItemProductDto }),
+    __metadata("design:type", ItemProductDto)
+], ItemResponseDto.prototype, "product", void 0);
 __decorate([
     (0, class_transformer_1.Expose)(),
     (0, swagger_1.ApiPropertyOptional)(),

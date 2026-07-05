@@ -9,26 +9,13 @@ import {
   IsPositive,
   IsString,
   IsUrl,
-  MaxLength,
-  MinLength,
+  IsUUID,
 } from 'class-validator';
 
 export class CreateItemDto {
-  @ApiProperty()
-  @IsString()
-  @MinLength(1)
-  @MaxLength(200)
-  title: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  brand?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  category?: string;
+  @ApiProperty({ description: 'Das Produkt, dem dieser Lagerartikel zugeordnet ist' })
+  @IsUUID()
+  productId: string;
 
   @ApiPropertyOptional()
   @IsOptional()

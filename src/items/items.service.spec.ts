@@ -1,13 +1,27 @@
 import { NotFoundException } from '@nestjs/common';
-import type { Item } from '@prisma/client';
+import type { Item, Product } from '@prisma/client';
 import { ItemsService } from './items.service';
+import type { ItemWithProduct } from './repositories/item.repository.interface';
 
-function buildItem(overrides: Partial<Item> = {}): Item {
+function buildProduct(overrides: Partial<Product> = {}): Product {
   return {
-    id: 'item-1',
+    id: 'product-1',
     title: 'Ralph Lauren Oxford Hemd',
     brand: 'Ralph Lauren',
     category: 'Hemden',
+    notes: null,
+    createdAt: new Date('2026-06-01'),
+    updatedAt: new Date('2026-06-01'),
+    userId: 'user-1',
+    ...overrides,
+  };
+}
+
+function buildItem(overrides: Partial<ItemWithProduct> = {}): ItemWithProduct {
+  const { product: productOverrides, ...itemOverrides } = overrides;
+  const item: Item = {
+    id: 'item-1',
+    productId: 'product-1',
     size: 'M',
     condition: 'VERY_GOOD',
     color: null,
@@ -28,8 +42,9 @@ function buildItem(overrides: Partial<Item> = {}): Item {
     createdAt: new Date('2026-06-01'),
     updatedAt: new Date('2026-06-01'),
     userId: 'user-1',
-    ...overrides,
+    ...itemOverrides,
   };
+  return { ...item, product: buildProduct(productOverrides) };
 }
 
 describe('ItemsService', () => {
@@ -42,15 +57,18 @@ describe('ItemsService', () => {
     update: jest.Mock;
     delete: jest.Mock;
     updateManyStatus: jest.Mock;
+    aggregateSold: jest.Mock;
+    aggregateStock: jest.Mock;
   };
   let storageProvider: {
     save: jest.Mock;
     delete: jest.Mock;
     getUrl: jest.Mock;
   };
+  let productsService: { assertOwnership: jest.Mock };
   let prisma: { $transaction: jest.Mock };
   let txItemCreate: jest.Mock<
-    Promise<Item>,
+    Promise<ItemWithProduct>,
     [{ data: Record<string, unknown> }]
   >;
   let txPurchaseCreate: jest.Mock<
@@ -58,7 +76,7 @@ describe('ItemsService', () => {
     [{ data: Record<string, unknown> }]
   >;
   let txItemUpdate: jest.Mock<
-    Promise<Item>,
+    Promise<ItemWithProduct>,
     [{ data: Record<string, unknown> }]
   >;
   let txSaleCreate: jest.Mock<
@@ -75,11 +93,16 @@ describe('ItemsService', () => {
       update: jest.fn(),
       delete: jest.fn(),
       updateManyStatus: jest.fn(),
+      aggregateSold: jest.fn(),
+      aggregateStock: jest.fn(),
     };
     storageProvider = { save: jest.fn(), delete: jest.fn(), getUrl: jest.fn() };
+    productsService = {
+      assertOwnership: jest.fn().mockResolvedValue(buildProduct()),
+    };
 
     txItemCreate = jest.fn<
-      Promise<Item>,
+      Promise<ItemWithProduct>,
       [{ data: Record<string, unknown> }]
     >();
     txPurchaseCreate = jest.fn<
@@ -87,7 +110,7 @@ describe('ItemsService', () => {
       [{ data: Record<string, unknown> }]
     >();
     txItemUpdate = jest.fn<
-      Promise<Item>,
+      Promise<ItemWithProduct>,
       [{ data: Record<string, unknown> }]
     >();
     txSaleCreate = jest.fn<
@@ -109,17 +132,50 @@ describe('ItemsService', () => {
       itemRepository,
       storageProvider,
       prisma as never,
+      productsService as never,
     );
   });
 
   describe('create', () => {
+    it('validates that the product belongs to the user before creating', async () => {
+      const created = buildItem();
+      txItemCreate.mockResolvedValue(created);
+      txPurchaseCreate.mockResolvedValue({});
+
+      await service.create('user-1', {
+        productId: 'product-1',
+        purchasePrice: 8.5,
+        purchaseDate: '2026-06-01',
+      });
+
+      expect(productsService.assertOwnership).toHaveBeenCalledWith(
+        'product-1',
+        'user-1',
+      );
+    });
+
+    it('does not create the item when the product ownership check fails', async () => {
+      productsService.assertOwnership.mockRejectedValue(
+        new NotFoundException('Product not found'),
+      );
+
+      await expect(
+        service.create('user-1', {
+          productId: 'other-product',
+          purchasePrice: 8.5,
+          purchaseDate: '2026-06-01',
+        }),
+      ).rejects.toThrow(NotFoundException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
     it('creates the item and a linked purchase record in the same transaction', async () => {
       const created = buildItem();
       txItemCreate.mockResolvedValue(created);
       txPurchaseCreate.mockResolvedValue({});
 
       const result = await service.create('user-1', {
-        title: 'Ralph Lauren Oxford Hemd',
+        productId: 'product-1',
         purchasePrice: 8.5,
         purchaseDate: '2026-06-01',
       });
@@ -127,6 +183,7 @@ describe('ItemsService', () => {
       const itemCreateArg = txItemCreate.mock.calls[0][0];
       expect(itemCreateArg.data).toMatchObject({
         userId: 'user-1',
+        productId: 'product-1',
         purchasePrice: 8.5,
       });
 
@@ -137,6 +194,7 @@ describe('ItemsService', () => {
         price: 8.5,
       });
       expect(result.id).toBe(created.id);
+      expect(result.product.title).toBe('Ralph Lauren Oxford Hemd');
     });
   });
 
@@ -191,7 +249,31 @@ describe('ItemsService', () => {
       itemRepository.findById.mockResolvedValue(null);
 
       await expect(
-        service.update('item-1', 'user-1', { title: 'New title' }),
+        service.update('item-1', 'user-1', { productId: 'product-1' }),
+      ).rejects.toThrow(NotFoundException);
+      expect(itemRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('validates ownership of a newly assigned product before updating', async () => {
+      itemRepository.findById.mockResolvedValue(buildItem());
+      itemRepository.update.mockResolvedValue(buildItem());
+
+      await service.update('item-1', 'user-1', { productId: 'product-2' });
+
+      expect(productsService.assertOwnership).toHaveBeenCalledWith(
+        'product-2',
+        'user-1',
+      );
+    });
+
+    it('rejects updating to a product owned by another user', async () => {
+      itemRepository.findById.mockResolvedValue(buildItem());
+      productsService.assertOwnership.mockRejectedValue(
+        new NotFoundException('Product not found'),
+      );
+
+      await expect(
+        service.update('item-1', 'user-1', { productId: 'other-users-product' }),
       ).rejects.toThrow(NotFoundException);
       expect(itemRepository.update).not.toHaveBeenCalled();
     });

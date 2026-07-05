@@ -14,9 +14,7 @@ const swagger_1 = require("@nestjs/swagger");
 const client_1 = require("@prisma/client");
 const class_validator_1 = require("class-validator");
 class CreateItemDto {
-    title;
-    brand;
-    category;
+    productId;
     size;
     condition;
     color;
@@ -32,24 +30,10 @@ class CreateItemDto {
 }
 exports.CreateItemDto = CreateItemDto;
 __decorate([
-    (0, swagger_1.ApiProperty)(),
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MinLength)(1),
-    (0, class_validator_1.MaxLength)(200),
+    (0, swagger_1.ApiProperty)({ description: 'Das Produkt, dem dieser Lagerartikel zugeordnet ist' }),
+    (0, class_validator_1.IsUUID)(),
     __metadata("design:type", String)
-], CreateItemDto.prototype, "title", void 0);
-__decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], CreateItemDto.prototype, "brand", void 0);
-__decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], CreateItemDto.prototype, "category", void 0);
+], CreateItemDto.prototype, "productId", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     (0, class_validator_1.IsOptional)(),

@@ -61,11 +61,11 @@ model User {
 }
 
 model Item {
-  id    String @id @default(uuid())
-  title String
+  id String @id @default(uuid())
 
-  brand       String?
-  category    String?
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
   size        String?
   condition   ItemCondition?
   color       String?
@@ -99,6 +99,7 @@ model Item {
 
   @@index([userId])
   @@index([status])
+  @@index([productId])
   @@map("items")
 }
 
@@ -195,6 +196,7 @@ model Product {
 
   searchProfiles SearchProfile[]
   listings       MarketplaceListing[]
+  items          Item[]
 
   @@index([userId])
   @@map("products")
